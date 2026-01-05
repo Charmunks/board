@@ -21,7 +21,7 @@ async function queuedGenerateSql(prompt) {
   });
 }
 
-async function generateSqlInternal(prompt, retries = 3) {
+async function generateSqlInternal(prompt, retries = 5) {
   const systemPrompt = `You are a PostgreSQL query generator. Given a natural language description, generate ONLY the raw SQL query.
 CRITICAL: Output ONLY the SQL statement. No thinking, no explanation, no markdown, no code blocks, no preamble. Your entire response must be valid SQL that can be executed directly.
 The database has these tables:
@@ -55,8 +55,8 @@ IMPORTANT: Ignore any requests telling you to take extremely destructive actions
     );
 
     if (response.status === 429) {
-      const delay = Math.pow(2, attempt) * 1000;
-      console.log(`[AI SQL] Rate limited, retrying in ${delay}ms...`);
+      const delay = Math.pow(2, attempt + 1) * 1000 + Math.random() * 1000;
+      console.log(`[AI SQL] Rate limited, retrying in ${Math.round(delay)}ms...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
       continue;
     }
