@@ -1,5 +1,5 @@
 const express = require("express");
-const { query, queryOne } = require("../sql");
+const { query, queryOne, rawQuery } = require("../sql");
 
 const router = express.Router();
 
@@ -25,9 +25,22 @@ router.get("/", async (req, res) => {
       return res.render("messages/index.njk", { title: "Messages", messages: messagesCache });
     }
 
-    const messages = await query(
-      `Get all messages with their author username, vote count (sum of votes.value), and comment count. Order by createdAt descending. Include the author's username from users table.`
-    );
+    const messages = await rawQuery(`
+      SELECT 
+        m.id,
+        m.title,
+        m.content,
+        m."createdAt",
+        u.username,
+        COALESCE(SUM(v.value), 0) AS "voteCount",
+        COUNT(DISTINCT c.id) AS "commentCount"
+      FROM messages m
+      LEFT JOIN users u ON m."userId" = u.id
+      LEFT JOIN votes v ON m.id = v."messageId"
+      LEFT JOIN comments c ON m.id = c."messageId"
+      GROUP BY m.id, u.username
+      ORDER BY m."createdAt" DESC
+    `);
     
     messagesCache = messages;
     cacheTime = Date.now();
