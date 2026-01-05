@@ -1,0 +1,74 @@
+{% from "macros/themeSwitcher.njk" import themeSwitcher %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ title }}{% endblock %}</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/theme.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/messages" class="nav-brand">Message Board</a>
+      <div class="nav-right">
+        {{ themeSwitcher() }}
+        {% if user %}
+          <a href="/profile/{{ user.username }}" class="nav-user">{{ user.username }}</a>
+          <form method="POST" action="/auth/logout" class="nav-logout">
+            <button type="submit">Logout</button>
+          </form>
+        {% else %}
+          <a href="/auth/login">Login</a>
+          <a href="/auth/signup">Sign Up</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <div id="welcome-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+      <h2>Welcome!</h2>
+      <p>This is an experiment where every single database query is generated with AI (Gemini 3 Flash) on the fly. My goal is to stress test AI's ability. Because of this, every single action requires an AI query, so do not expect blazingly fast times. Enjoy!</p>
+      <button id="popup-close" class="btn-primary" disabled>Do not show again</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const popup = document.getElementById('welcome-popup');
+      const closeBtn = document.getElementById('popup-close');
+      
+      if (!localStorage.getItem('welcomePopupDismissed')) {
+        popup.style.display = 'flex';
+        
+        let countdown = 3;
+        closeBtn.textContent = `Do not show again (${countdown})`;
+        
+        const timer = setInterval(() => {
+          countdown--;
+          if (countdown > 0) {
+            closeBtn.textContent = `Do not show again (${countdown})`;
+          } else {
+            clearInterval(timer);
+            closeBtn.textContent = 'Do not show again';
+            closeBtn.disabled = false;
+          }
+        }, 1000);
+        
+        closeBtn.addEventListener('click', () => {
+          localStorage.setItem('welcomePopupDismissed', 'true');
+          popup.style.display = 'none';
+        });
+      }
+    })();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,138 @@
+{% extends "base.njk" %}
+
+{% block content %}
+<div class="container">
+  <header class="page-header">
+    <h1>Message Board</h1>
+    {% if user %}
+      <a href="/messages/new" class="btn btn-primary">New Message</a>
+    {% else %}
+      <p><a href="/auth/login">Log in</a> to post messages</p>
+    {% endif %}
+  </header>
+
+  {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <div class="messages-list">
+    {% if messages.length === 0 %}
+      <p class="empty-state">No messages yet. Be the first to post!</p>
+    {% endif %}
+
+    {% for message in messages %}
+      <article class="message-card">
+        <div class="message-votes">
+          <span class="vote-count">{{ message.votecount or message.vote_count or 0 }}</span>
+          <span class="vote-label">votes</span>
+        </div>
+        <div class="message-content">
+          <h2><a href="/messages/{{ message.id }}">{{ message.title }}</a></h2>
+          <p class="message-meta">
+            Posted by <a href="/profile/{{ message.username }}" class="author-link"><strong>{{ message.username }}</strong></a>
+            {% if message.createdAt or message.createdat %}
+              on {{ (message.createdAt or message.createdat) | date }}
+            {% endif %}
+            · <span class="comment-count">{{ message.commentcount or message.comment_count or 0 }} comments</span>
+          </p>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+
+  .btn-primary {
+    background: var(--accent, #338eda);
+    color: white;
+  }
+
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .message-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border, #ccc);
+    border-radius: 8px;
+  }
+
+  .message-votes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+  }
+
+  .vote-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .vote-label {
+    font-size: 0.75rem;
+    color: var(--muted, #8492a6);
+  }
+
+  .message-content h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+  }
+
+  .message-content h2 a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .message-content h2 a:hover {
+    text-decoration: underline;
+  }
+
+  .message-meta {
+    font-size: 0.875rem;
+    color: var(--muted, #8492a6);
+    margin: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted, #8492a6);
+  }
+
+  .alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+
+  .alert-error {
+    background: #fee;
+    color: #c00;
+    border: 1px solid #fcc;
+  }
+</style>
+{% endblock %}

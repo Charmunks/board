@@ -1,0 +1,138 @@
+{% extends "base.njk" %}
+
+{% block content %}
+<div class="container">
+  {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+  {% else %}
+    <header class="profile-header">
+      <h1>{{ profile.username }}</h1>
+      <p class="profile-meta">Member since {{ profile.createdAt | date }}</p>
+    </header>
+
+    <section class="profile-messages">
+      <h2>Posts by {{ profile.username }}</h2>
+      
+      {% if messages.length === 0 %}
+        <p class="empty-state">{{ profile.username }} hasn't posted any messages yet.</p>
+      {% endif %}
+
+      <div class="messages-list">
+        {% for message in messages %}
+          <article class="message-card">
+            <div class="message-votes">
+              <span class="vote-count">{{ message.votecount or message.vote_count or 0 }}</span>
+              <span class="vote-label">votes</span>
+            </div>
+            <div class="message-content">
+              <h3><a href="/messages/{{ message.id }}">{{ message.title }}</a></h3>
+              <p class="message-meta">
+                {% if message.createdAt or message.createdat %}
+                  Posted on {{ (message.createdAt or message.createdat) | date }}
+                {% endif %}
+                · <span class="comment-count">{{ message.commentcount or message.comment_count or 0 }} comments</span>
+              </p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .profile-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border, #ccc);
+  }
+
+  .profile-header h1 {
+    margin: 0 0 0.5rem;
+  }
+
+  .profile-meta {
+    color: var(--muted, #8492a6);
+    margin: 0;
+  }
+
+  .profile-messages h2 {
+    margin-bottom: 1rem;
+  }
+
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .message-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border, #ccc);
+    border-radius: 8px;
+  }
+
+  .message-votes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+  }
+
+  .vote-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .vote-label {
+    font-size: 0.75rem;
+    color: var(--muted, #8492a6);
+  }
+
+  .message-content h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .message-content h3 a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .message-content h3 a:hover {
+    text-decoration: underline;
+  }
+
+  .message-meta {
+    font-size: 0.875rem;
+    color: var(--muted, #8492a6);
+    margin: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted, #8492a6);
+  }
+
+  .alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+
+  .alert-error {
+    background: #fee;
+    color: #c00;
+    border: 1px solid #fcc;
+  }
+</style>
+{% endblock %}
