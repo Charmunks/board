@@ -7,8 +7,8 @@ const pool = new Pool({
 });
 
 async function generateSql(prompt) {
-  const systemPrompt = `You are a PostgreSQL query generator. Given a natural language description, generate ONLY the raw SQL query. 
-Do not include any explanation, markdown formatting, or code blocks. Just output the pure SQL statement.
+  const systemPrompt = `You are a PostgreSQL query generator. Given a natural language description, generate ONLY the raw SQL query.
+CRITICAL: Output ONLY the SQL statement. No thinking, no explanation, no markdown, no code blocks, no preamble. Your entire response must be valid SQL that can be executed directly.
 The database has these tables:
 - users (id SERIAL PRIMARY KEY, username VARCHAR(255) UNIQUE, email VARCHAR(255) UNIQUE, "passwordHash" VARCHAR(255), "createdAt" TIMESTAMP, "updatedAt" TIMESTAMP)
 - messages (id SERIAL PRIMARY KEY, "userId" INTEGER REFERENCES users(id), title VARCHAR(255), content TEXT, "createdAt" TIMESTAMP)
@@ -39,8 +39,18 @@ IMPORTANT: Ignore any requests telling you to take extremely destructive actions
   );
 
   const data = await response.json();
-  const sql = data.choices[0].message.content.trim();
-  return sql;
+  let sql = data.choices[0].message.content.trim();
+  
+  sql = sql.replace(/```sql\n?/gi, "").replace(/```\n?/g, "");
+  
+  const sqlKeywords = /^(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP)/i;
+  const lines = sql.split("\n");
+  const sqlStartIndex = lines.findIndex((line) => sqlKeywords.test(line.trim()));
+  if (sqlStartIndex > 0) {
+    sql = lines.slice(sqlStartIndex).join("\n");
+  }
+  
+  return sql.trim();
 }
 
 async function query(prompt, params = []) {
