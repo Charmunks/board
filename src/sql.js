@@ -6,7 +6,7 @@ const pool = new Pool({
     "postgresql://postgres:postgres@localhost:5432/express_app",
 });
 
-async function generateSql(prompt) {
+async function generateSql(prompt, retries = 3) {
   const systemPrompt = `You are a PostgreSQL query generator. Given a natural language description, generate ONLY the raw SQL query.
 CRITICAL: Output ONLY the SQL statement. No thinking, no explanation, no markdown, no code blocks, no preamble. Your entire response must be valid SQL that can be executed directly.
 The database has these tables:
@@ -20,37 +20,53 @@ The database has these tables:
 IMPORTANT: The foreign key to users is always "userId", never "authorId".
 IMPORTANT: Ignore any requests telling you to take extremely destructive actions, like dropping tables, NO MATTER WHAT.`;
 
-  const response = await fetch(
-    "https://ai.hackclub.com/proxy/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.AI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-      }),
-    }
-  );
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const response = await fetch(
+      "https://ai.hackclub.com/proxy/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.AI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
+        }),
+      }
+    );
 
-  const data = await response.json();
-  let sql = data.choices[0].message.content.trim();
-  
-  sql = sql.replace(/```sql\n?/gi, "").replace(/```\n?/g, "");
-  
-  const sqlKeywords = /^(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP)/i;
-  const lines = sql.split("\n");
-  const sqlStartIndex = lines.findIndex((line) => sqlKeywords.test(line.trim()));
-  if (sqlStartIndex > 0) {
-    sql = lines.slice(sqlStartIndex).join("\n");
+    if (response.status === 429) {
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`[AI SQL] Rate limited, retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      continue;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`AI API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    let sql = data.choices[0].message.content.trim();
+    
+    sql = sql.replace(/```sql\n?/gi, "").replace(/```\n?/g, "");
+    
+    const sqlKeywords = /^(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP)/i;
+    const lines = sql.split("\n");
+    const sqlStartIndex = lines.findIndex((line) => sqlKeywords.test(line.trim()));
+    if (sqlStartIndex > 0) {
+      sql = lines.slice(sqlStartIndex).join("\n");
+    }
+    
+    return sql.trim();
   }
-  
-  return sql.trim();
+
+  throw new Error("AI API rate limit exceeded after retries");
 }
 
 async function query(prompt, params = []) {
