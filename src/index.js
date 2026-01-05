@@ -13,6 +13,8 @@ const profileRoutes = require("./routes/profile");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set("trust proxy", 1);
+
 const nunjucksEnv = nunjucks.configure(path.join(__dirname, "views"), {
   autoescape: true,
   express: app,
