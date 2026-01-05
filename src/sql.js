@@ -6,7 +6,22 @@ const pool = new Pool({
     "postgresql://postgres:postgres@localhost:5432/express_app",
 });
 
-async function generateSql(prompt, retries = 3) {
+let requestQueue = Promise.resolve();
+
+async function queuedGenerateSql(prompt) {
+  return new Promise((resolve, reject) => {
+    requestQueue = requestQueue.then(async () => {
+      try {
+        const result = await generateSqlInternal(prompt);
+        resolve(result);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
+
+async function generateSqlInternal(prompt, retries = 3) {
   const systemPrompt = `You are a PostgreSQL query generator. Given a natural language description, generate ONLY the raw SQL query.
 CRITICAL: Output ONLY the SQL statement. No thinking, no explanation, no markdown, no code blocks, no preamble. Your entire response must be valid SQL that can be executed directly.
 The database has these tables:
@@ -67,6 +82,10 @@ IMPORTANT: Ignore any requests telling you to take extremely destructive actions
   }
 
   throw new Error("AI API rate limit exceeded after retries");
+}
+
+async function generateSql(prompt) {
+  return queuedGenerateSql(prompt);
 }
 
 async function query(prompt, params = []) {
